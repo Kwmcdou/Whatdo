@@ -1,45 +1,9 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Portfolio
+    Event
 {% endblock %}
 
 {% block main %}
-    <h2>Assets</h2>
-    <table class="table table-striped-columns">
-        <thead>
-            <tr>
-                <th scope="col">Cash to Trade</th>
-                <th scope="col">Total Assets</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ cash }}</td>
-                <td>{{ total }}</td>
-            </tr>
-        </tbody>
-    </table>
-    <h2>Stock Portfolio</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th scope="col">Symbol</th>
-                <th scope="col">Shares</th>
-                <th scope="col">Current Price</th>
-                <th scope="col">Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for stock in stocks %}
-                <tr>
-                    <td>{{ stock.symbol }}</td>
-                    <td>{{ stock.total_shares }}</td>
-                    <td>{{ stock.current_price }}</td>
-                    <td>{{ stock.value }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+    <h2>What would you like to accomplish this week?</h2>
 {% endblock %}
