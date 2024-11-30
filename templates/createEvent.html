@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <h1>Create Event</h1>
+    <form action="/create_event" method="post">
+        <label for="event_name">Event Name:</label>
+        <input type="text" id="event_name" name="event_name" required>
+        <small>Enter the name of the event</small>
+        <button type="submit">Start Event</button>
+    </form>
+{% endblock %}

@@ -34,6 +34,29 @@ def index():
 
     return render_template("index.html")
 
+@app.route("/create_event", methods=["GET", "POST"])
+@login_required
+def create_event():
+    """Create a new event"""
+    if request.method == "POST":
+        event_name = request.form.get("event_name")
+
+        # Ensure the event name was provided
+        if not event_name:
+            return apology("must provide event name", 400)
+
+        prompt_g = "What would you like to accomplish this week?"
+        # Store event name with default prompt
+        db.execute("INSERT INTO events (name, prompt_g) VALUES (?, ?)", event_name, prompt_g)
+
+        # Update user_events
+        db.execute("INSERT INTO user_events (user_id, event_id) VALUES (?, (SELECT id FROM events WHERE name = ?))", session["user_id"], event_name)
+
+        flash("Event created successfully!", "success")
+        return render_template("event.html", prompt_g=prompt_g, event_name=event_name)
+
+    return render_template("createEvent.html")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
