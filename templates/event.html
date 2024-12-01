@@ -1,9 +1,21 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Register
+    Event
 {% endblock %}
 
 {% block main %}
     <h1>{{ prompt_g }}</h1>
+
+    <form action="/create_card" method="post">
+        <input autofocus type="text" name="content" placeholder="Enter text (max 120 characters)" maxlength="120" required>
+        <input type="number" value="{{ event_id }}" name="event_id" hidden>
+        <button type="submit">Submit</button>
+    </form>
+
+    <ul>
+        {% for card in cards %}
+        <li>{{ card.content }}</li>
+        {% endfor %}
+    </ul>
 {% endblock %}

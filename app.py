@@ -10,6 +10,9 @@ from helpers import apology, login_required
 # Configure application
 app = Flask(__name__)
 
+# Enable debug mode
+app.config['DEBUG'] = True
+
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
@@ -31,7 +34,6 @@ def after_request(response):
 @app.route("/")
 @login_required
 def index():
-
     return render_template("index.html")
 
 @app.route("/create_event", methods=["GET", "POST"])
@@ -49,13 +51,34 @@ def create_event():
         # Store event name with default prompt
         db.execute("INSERT INTO events (name, prompt_g) VALUES (?, ?)", event_name, prompt_g)
 
-        # Update user_events
-        db.execute("INSERT INTO user_events (user_id, event_id) VALUES (?, (SELECT id FROM events WHERE name = ?))", session["user_id"], event_name)
+        event_id = db.execute("SELECT id FROM events WHERE name = ?", event_name)[0]["id"]
 
-        flash("Event created successfully!", "success")
-        return render_template("event.html", prompt_g=prompt_g, event_name=event_name)
+        # Update user_events
+        db.execute("INSERT INTO user_events (user_id, event_id) VALUES (?, ?)", session["user_id"], event_id)
+
+        return render_template("event.html", prompt_g=prompt_g, event_name=event_name, event_id=evesnt_id)
 
     return render_template("createEvent.html")
+
+@app.route("/create_card", methods=["GET", "POST"])
+@login_required
+def create_card():
+    """Create a new card for an event"""
+    if request.method == "POST":
+        content = request.form.get("content")
+        event_id = request.form.get("event_id")
+
+        # Ensure content was provided
+        if not content:
+            return apology("must provide content", 400)
+
+        # Insert the new card into the database
+        db.execute("INSERT INTO cards (event_id, user_id, content) VALUES (?, ?, ?)",
+                   event_id, session["user_id"], content)
+
+        return render_template("event.html", event_id=event_id, cards=db.execute("SELECT * FROM cards WHERE event_id = ?", event_id), prompt_g=db.execute("SELECT prompt_g FROM events WHERE id = ?", event_id)[0]["prompt_g"])
+
+    return render_template("event.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
