@@ -34,7 +34,12 @@ def after_request(response):
 @app.route("/")
 @login_required
 def index():
-    return render_template("index.html")
+
+    """Show home page"""
+    # Pull the name of user's events
+    events = db.execute("SELECT name, id FROM events WHERE id IN (SELECT event_id FROM user_events WHERE user_id = ?)", session["user_id"])
+
+    return render_template("index.html", events=events)
 
 @app.route("/create_event", methods=["GET", "POST"])
 @login_required
