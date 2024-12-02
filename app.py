@@ -69,10 +69,16 @@ def create_event():
 @login_required
 def event(event_id):
     """Display an event and its cards"""
-    # Fetch the event details
+    # Fetch the event details to ensure it exists
     event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
     if not event:
         return apology("Event not found", 404)
+
+    # Check if the user is associated with the event
+    user_event = db.execute("SELECT event_id FROM user_events WHERE user_id = ? AND event_id = ?", session["user_id"],
+                            event_id)
+    if not user_event:
+        return apology("Access denied. You do not have permission for this event", 403)
 
     # Fetch the cards for this event
     cards = db.execute("SELECT * FROM cards WHERE event_id = ?", event_id)
