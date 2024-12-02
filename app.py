@@ -56,9 +56,24 @@ def create_event():
         # Update user_events
         db.execute("INSERT INTO user_events (user_id, event_id) VALUES (?, ?)", session["user_id"], event_id)
 
-        return render_template("event.html", prompt_g=prompt_g, event_name=event_name, event_id=evesnt_id)
+        return render_template("event.html", prompt_g=prompt_g, event_name=event_name, event_id=event_id)
 
     return render_template("createEvent.html")
+
+@app.route("/event/<int:event_id>")
+@login_required
+def event(event_id):
+    """Display an event and its cards"""
+    # Fetch the event details
+    event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
+    if not event:
+        return apology("Event not found", 404)
+
+    # Fetch the cards for this event
+    cards = db.execute("SELECT * FROM cards WHERE event_id = ?", event_id)
+
+    # Render the event page with its cards
+    return render_template("event.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"])
 
 @app.route("/create_card", methods=["GET", "POST"])
 @login_required
@@ -76,7 +91,8 @@ def create_card():
         db.execute("INSERT INTO cards (event_id, user_id, content) VALUES (?, ?, ?)",
                    event_id, session["user_id"], content)
 
-        return render_template("event.html", event_id=event_id, cards=db.execute("SELECT * FROM cards WHERE event_id = ?", event_id), prompt_g=db.execute("SELECT prompt_g FROM events WHERE id = ?", event_id)[0]["prompt_g"])
+        # Redirect to the event page to prevent resubmission
+        return redirect(f"/event/{event_id}")
 
     return render_template("event.html")
 
