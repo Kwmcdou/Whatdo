@@ -18,4 +18,62 @@
         <li>{{ card.content }}</li>
         {% endfor %}
     </ul>
+
+    <button id="start-ranking" onclick="startRanking()">Rank List</button>
+
+    <div id="comparison-section" style="display:none;">
+        <h2>If you could only do one of these today, which is more important to accomplish?</h2>
+        <button id="item1" onclick="submitChoice(1)"></button>
+        <button id="item2" onclick="submitChoice(2)"></button>
+    </div>
+
+    <!-- JavaScript at the end to ensure the DOM is loaded -->
+    <script>
+        function startRanking() {
+            // Fetch initial pair from server
+            fetch('/start_comparison', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({'event_id': {{ event_id }}})
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('start-ranking').style.display = 'none';
+                updateComparisonSection(data.item1, data.item2);
+            });
+        }
+
+        function updateComparisonSection(item1, item2) {
+            document.getElementById('comparison-section').style.display = 'block';
+            document.getElementById('item1').innerText = item1.content;
+            document.getElementById('item2').innerText = item2.content;
+        }
+
+        function submitChoice(choice) {
+            const selected = choice === 1 ? 'item1' : 'item2';
+            const item1Content = document.getElementById('item1').innerText;
+            const item2Content = document.getElementById('item2').innerText;
+
+            fetch('/submit_comparison', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    'event_id': {{ event_id }},
+                    'chosen': document.getElementById(selected).innerText,
+                    'other': selected === 'item1' ? item2Content : item1Content
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.done) {
+                    // Render the sorted list or navigate to a different page
+                    window.location.reload();
+                } else {
+                    updateComparisonSection(data.nextItem1, data.nextItem2);
+                }
+            });
+        }
+    </script>
+
 {% endblock %}
+

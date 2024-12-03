@@ -1,7 +1,7 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -106,6 +106,104 @@ def create_card():
         return redirect(f"/event/{event_id}")
 
     return render_template("event.html")
+
+@app.route('/start_comparison', methods=['POST'])
+@login_required
+def start_comparison():
+    """Fetch the first two items for comparison in an event."""
+    data = request.get_json()
+    event_id = data.get('event_id')
+
+    # Fetch two cards for the event - simple example assumes random selection
+    cards = db.execute("""
+        SELECT id, content FROM cards
+        WHERE event_id = ? 
+        ORDER BY RANDOM() LIMIT 2
+    """, event_id)
+
+    # Check if there are at least two items to compare
+    if len(cards) < 2:
+        return jsonify({"done": True})
+
+    return jsonify({"item1": cards[0], "item2": cards[1]})
+
+
+@app.route('/submit_comparison', methods=['POST'])
+@login_required
+def submit_comparison():
+    """Prompt user to compare cards until there are no NULL or duplicate priorities."""
+    data = request.get_json()
+    event_id = data.get('event_id')
+    chosen_content = data.get('chosen')
+    other_content = data.get('other')
+
+    def fetch_card_data(content):
+        query = """
+            SELECT id, priority_y FROM cards WHERE content = ? AND event_id = ?
+        """
+        return db.execute(query, content, event_id)
+
+    def update_card_priority(card_id, priority):
+        query = "UPDATE cards SET priority_y = ? WHERE id = ?"
+        db.execute(query, priority, card_id)
+
+    def fetch_null_priority_cards():
+        query = """
+            SELECT id, content FROM cards
+            WHERE event_id = ? AND priority_y IS NULL
+        """
+        return db.execute(query, event_id)
+
+    def fetch_duplicate_cards():
+        query = """
+            SELECT id, content FROM cards
+            WHERE event_id = ? AND priority_y IN (
+                SELECT priority_y
+                FROM cards
+                WHERE event_id = ?
+                GROUP BY priority_y
+                HAVING COUNT(*) > 1
+            )
+            ORDER BY priority_y
+        """
+        return db.execute(query, event_id, event_id)
+
+    def fetch_next_comparison_pair():
+        null_cards = fetch_null_priority_cards()
+        if null_cards:
+            return null_cards[0], null_cards[1] if len(null_cards) > 1 else null_cards[0]
+
+        duplicates = fetch_duplicate_cards()
+        if duplicates and len(duplicates) > 1:
+            return duplicates[0], duplicates[1]
+
+        return None, None
+
+    chosen_card = fetch_card_data(chosen_content)
+    other_card = fetch_card_data(other_content)
+
+    if chosen_card and other_card:
+        chosen_id = chosen_card[0]['id']
+        other_id = other_card[0]['id']
+        other_priority = other_card[0]['priority_y']
+
+        if other_priority is not None:
+            new_priority = other_priority - 1
+            other_priority = new_priority + 1
+        else:
+            num_rows_query = "SELECT COUNT(*) FROM cards WHERE event_id = ?"
+            num_rows = db.execute(num_rows_query, event_id)[0]['COUNT(*)']
+            new_priority = num_rows - 1
+            other_priority = new_priority + 1
+
+        update_card_priority(chosen_id, new_priority)
+        update_card_priority(other_id, other_priority)
+
+    next_card1, next_card2 = fetch_next_comparison_pair()
+    if next_card1 and next_card2:
+        return jsonify({"nextItem1": next_card1, "nextItem2": next_card2})
+
+    return jsonify({"done": True})
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
