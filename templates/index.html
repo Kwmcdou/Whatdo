@@ -1,16 +1,20 @@
 {% extends "layout.html" %}
-
 {% block title %}
-    Event
+Event
 {% endblock %}
-
 {% block main %}
-    <h1>Get started by creating an event</h1>
-    <a href="/create_event">Create Event</a>
-    <h2>My Events</h2>
-    <ul>
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">Get Started by Creating an Event</h1>
+    <div class="text-center mb-5">
+        <a href="/create_event" class="btn btn-primary">Create Event</a>
+    </div>
+    <h2 class="mb-3">My Events</h2>
+    <ul class="list-group">
         {% for event in events %}
-        <li><a href="/event/{{ event.id }}">{{ event.name }}</a></li>
+        <li class="list-group-item">
+            <a href="/event/{{ event.id }}">{{ event.name }}</a>
+        </li>
         {% endfor %}
     </ul>
+</div>
 {% endblock %}

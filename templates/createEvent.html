@@ -1,15 +1,17 @@
 {% extends "layout.html" %}
-
 {% block title %}
     Create Event
 {% endblock %}
-
 {% block main %}
-    <h1>Create Event</h1>
-    <form action="/create_event" method="post">
-        <label for="event_name">Event Name:</label>
-        <input type="text" id="event_name" name="event_name" required>
-        <small>Enter the name of the event</small>
-        <button type="submit">Start Event</button>
-    </form>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Create Event</h1>
+        <form action="/create_event" method="post" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="event_name" class="form-label">Event Name:</label>
+                <input type="text" id="event_name" name="event_name" class="form-control" placeholder="Enter event name" required>
+                <div class="form-text">Enter the name of the event</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Start Event</button>
+        </form>
+    </div>
 {% endblock %}

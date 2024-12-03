@@ -1,36 +1,31 @@
 {% extends "layout.html" %}
-
 {% block title %}
     Event
 {% endblock %}
-
 {% block main %}
-    <h1>{{ prompt_g }}</h1>
-
-    <form action="/create_card" method="post">
-        <input autofocus type="text" name="content" placeholder="Enter text (max 120 characters)" maxlength="120" required>
-        <input type="number" value="{{ event_id }}" name="event_id" hidden>
-        <button type="submit">Submit</button>
-    </form>
-
-    <button id="start-ranking" onclick="startRanking()">Prioritize List</button>
-
-    <div id="comparison-section" style="display:none;">
-        <h2>If you could only do one of these today, which is more important to accomplish?</h2>
-        <button id="item1" onclick="submitChoice(1)"></button>
-        <button id="item2" onclick="submitChoice(2)"></button>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">{{ prompt_g }}</h1>
+        <form action="/create_card" method="post" class="mb-4">
+            <div class="mb-3">
+                <input type="text" name="content" class="form-control" placeholder="Enter text (max 120 characters)" maxlength="120" required autofocus>
+                <input type="hidden" value="{{ event_id }}" name="event_id">
+            </div>
+            <button type="submit" class="btn btn-success w-100">Submit</button>
+        </form>
+        <button id="start-ranking" class="btn btn-primary w-100 mb-3" onclick="startRanking()">Prioritize List</button>
+        <div id="comparison-section" class="d-none">
+            <h2 class="mb-4">If you could only do one of these today, which is more important to accomplish?</h2>
+            <button id="item1" class="btn btn-outline-secondary w-100 mb-2" onclick="submitChoice(1)"></button>
+            <button id="item2" class="btn btn-outline-secondary w-100" onclick="submitChoice(2)"></button>
+        </div>
+        <ul class="list-group mt-4">
+            {% for card in cards %}
+            <li class="list-group-item">{{ card.content }}</li>
+            {% endfor %}
+        </ul>
     </div>
-
-    <ul>
-        {% for card in cards %}
-        <li>{{ card.content }}</li>
-        {% endfor %}
-    </ul>
-
-    <!-- JavaScript at the end to ensure the DOM is loaded -->
     <script>
         function startRanking() {
-            // Fetch initial pair from server
             fetch('/start_comparison', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -38,13 +33,14 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('start-ranking').style.display = 'none';
+                document.getElementById('start-ranking').classList.add('d-none');
                 updateComparisonSection(data.item1, data.item2);
             });
         }
 
         function updateComparisonSection(item1, item2) {
-            document.getElementById('comparison-section').style.display = 'block';
+            const section = document.getElementById('comparison-section');
+            section.classList.remove('d-none');
             document.getElementById('item1').innerText = item1.content;
             document.getElementById('item2').innerText = item2.content;
         }
@@ -66,7 +62,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.done) {
-                    // Render the sorted list or navigate to a different page
                     window.location.reload();
                 } else {
                     updateComparisonSection(data.nextItem1, data.nextItem2);
@@ -74,6 +69,4 @@
             });
         }
     </script>
-
 {% endblock %}
-
