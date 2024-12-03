@@ -1,7 +1,7 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, jsonify, redirect, render_template, request, session
+from flask import Flask, flash, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -84,7 +84,7 @@ def event(event_id):
         return apology("Access denied. You do not have permission for this event", 403)
 
     # Fetch the cards for this event
-    cards = db.execute("SELECT * FROM cards WHERE event_id = ?", event_id)
+    cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
 
     # Render the event page with its cards
     return render_template("event.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"])
@@ -206,6 +206,7 @@ def submit_comparison():
     if next_card1 and next_card2:
         return jsonify({"nextItem1": next_card1, "nextItem2": next_card2})
 
+    flash("Your list is now in order from most important to least important.")
     return jsonify({"done": True})
 
 @app.route("/login", methods=["GET", "POST"])

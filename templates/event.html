@@ -13,19 +13,19 @@
         <button type="submit">Submit</button>
     </form>
 
-    <ul>
-        {% for card in cards %}
-        <li>{{ card.content }}</li>
-        {% endfor %}
-    </ul>
-
-    <button id="start-ranking" onclick="startRanking()">Rank List</button>
+    <button id="start-ranking" onclick="startRanking()">Prioritize List</button>
 
     <div id="comparison-section" style="display:none;">
         <h2>If you could only do one of these today, which is more important to accomplish?</h2>
         <button id="item1" onclick="submitChoice(1)"></button>
         <button id="item2" onclick="submitChoice(2)"></button>
     </div>
+
+    <ul>
+        {% for card in cards %}
+        <li>{{ card.content }}</li>
+        {% endfor %}
+    </ul>
 
     <!-- JavaScript at the end to ensure the DOM is loaded -->
     <script>
