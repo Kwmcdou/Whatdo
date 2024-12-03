@@ -6,6 +6,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required
+import sqlite3
 
 # Configure application
 app = Flask(__name__)
@@ -52,16 +53,18 @@ def create_event():
         if not event_name:
             return apology("must provide event name", 400)
 
+        # Default prompt_g
         prompt_g = "What would you like to accomplish this week?"
+
         # Store event name with default prompt
         db.execute("INSERT INTO events (name, prompt_g) VALUES (?, ?)", event_name, prompt_g)
 
-        event_id = db.execute("SELECT id FROM events WHERE name = ?", event_name)[0]["id"]
+        event_id = db.execute("SELECT id FROM events WHERE name = ? ORDER BY id DESC LIMIT 1", event_name)[0]['id']
 
         # Update user_events
         db.execute("INSERT INTO user_events (user_id, event_id) VALUES (?, ?)", session["user_id"], event_id)
 
-        return render_template("event.html", prompt_g=prompt_g, event_name=event_name, event_id=event_id)
+        return redirect(f"/event/{event_id}")
 
     return render_template("createEvent.html")
 
