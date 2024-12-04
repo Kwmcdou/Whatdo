@@ -5,7 +5,8 @@ Event
 {% block main %}
 <div class="container mt-5">
     {% set event_url = "/view_event/" ~ event_id %}
-    <h1 id="prompt_g" class="text-center mb-4">{{ prompt_g }}</h1>
+    <h1 id="event_name" class="text-left mb-4">{{ event_name }}</h1>
+    <h2 id="prompt_g" class="text-center mb-4">{{ prompt_g }}</h2>
     <form id="event-form" action="/create_card" method="post" class="mb-4">
         <div class="mb-3">
             <input type="text" name="content" class="form-control" placeholder="Enter text (max 120 characters)" maxlength="120" required autofocus>

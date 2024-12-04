@@ -38,7 +38,7 @@ def index():
 
     """Show home page"""
     # Pull the name of user's events
-    events = db.execute("SELECT name, id FROM events WHERE id IN (SELECT event_id FROM user_events WHERE user_id = ?)", session["user_id"])
+    events = db.execute("SELECT name, id, timestamp FROM events WHERE id IN (SELECT event_id FROM user_events WHERE user_id = ?)", session["user_id"])
 
     return render_template("index.html", events=events)
 
@@ -54,7 +54,7 @@ def create_event():
             return apology("must provide event name", 400)
 
         # Default prompt_g
-        prompt_g = "What would you like to accomplish this week?"
+        prompt_g = "What would you like to accomplish?"
 
         # Store event name with default prompt
         db.execute("INSERT INTO events (name, prompt_g) VALUES (?, ?)", event_name, prompt_g)
@@ -87,7 +87,7 @@ def view_event(event_id):
     cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
 
     # Render the event page with its cards
-    return render_template("viewEvent.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"])
+    return render_template("viewEvent.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"], event_name=event[0]["name"])
 
 @app.route("/event/<int:event_id>")
 @login_required
@@ -108,7 +108,7 @@ def event(event_id):
     cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
 
     # Render the event page with its cards
-    return render_template("event.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"])
+    return render_template("event.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"], event_name=event[0]["name"])
 
 @app.route("/create_card", methods=["GET", "POST"])
 @login_required

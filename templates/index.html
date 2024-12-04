@@ -9,12 +9,21 @@ Event
         <a href="/create_event" class="btn btn-primary">Create Event</a>
     </div>
     <h2 class="mb-3">My Events</h2>
-    <ul class="list-group">
-        {% for event in events %}
-        <li class="list-group-item">
-            <a href="/view_event/{{ event.id }}">{{ event.name }}</a>
-        </li>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Event Name</th>
+            <th scope="col">Timestamp</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for event in events|sort(attribute='timestamp', reverse=true) %}
+        <tr>
+            <td><a href="/view_event/{{ event.id }}">{{ event.name }}</a></td>
+            <td>{{ event.timestamp }}</td>
+        </tr>
         {% endfor %}
-    </ul>
+        </tbody>
+    </table>
 </div>
 {% endblock %}
