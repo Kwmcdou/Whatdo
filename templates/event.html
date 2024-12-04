@@ -1,72 +1,91 @@
 {% extends "layout.html" %}
 {% block title %}
-    Event
+Event
 {% endblock %}
 {% block main %}
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">{{ prompt_g }}</h1>
-        <form action="/create_card" method="post" class="mb-4">
-            <div class="mb-3">
-                <input type="text" name="content" class="form-control" placeholder="Enter text (max 120 characters)" maxlength="120" required autofocus>
-                <input type="hidden" value="{{ event_id }}" name="event_id">
-            </div>
-            <button type="submit" class="btn btn-success w-100">Submit</button>
-        </form>
-        <button id="start-ranking" class="btn btn-primary w-100 mb-3" onclick="startRanking()">Prioritize List</button>
-        <div id="comparison-section" class="d-none">
-            <h2 class="mb-4">If you could only do one of these today, which is more important to accomplish?</h2>
-            <button id="item1" class="btn btn-outline-secondary w-100 mb-2" onclick="submitChoice(1)"></button>
-            <button id="item2" class="btn btn-outline-secondary w-100" onclick="submitChoice(2)"></button>
+<div class="container mt-5">
+    {% set event_url = "/view_event/" ~ event_id %}
+    <h1 id="prompt_g" class="text-center mb-4">{{ prompt_g }}</h1>
+    <form id="event-form" action="/create_card" method="post" class="mb-4">
+        <div class="mb-3">
+            <input type="text" name="content" class="form-control" placeholder="Enter text (max 120 characters)" maxlength="120" required autofocus>
+            <input type="hidden" value="{{ event_id }}" name="event_id">
         </div>
-        <ul class="list-group mt-4">
-            {% for card in cards %}
-            <li class="list-group-item">{{ card.content }}</li>
-            {% endfor %}
-        </ul>
+        <button type="submit" class="btn btn-success w-100">Submit</button>
+    </form>
+    <button id="start-ranking" class="btn btn-primary w-100 mb-3" onclick="startRanking();showOnlyComparison()">Prioritize List</button>
+    <div id="comparison-section" class="d-none">
+        <h2 class="mb-4">If you could only do one of these today, which is more important to accomplish?</h2>
+        <button id="item1" class="btn btn-outline-secondary w-100 mb-2" onclick="submitChoice(1)"></button>
+        <button id="item2" class="btn btn-outline-secondary w-100" onclick="submitChoice(2)"></button>
     </div>
-    <script>
-        function startRanking() {
-            fetch('/start_comparison', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({'event_id': {{ event_id }}})
-            })
-            .then(response => response.json())
+
+    <!-- Refactored section to use a table -->
+    <table class="table mt-4" id="cards-list">
+        <thead>
+        <tr>
+            <th scope="col">Content</th>
+            <th scope="col">Priority</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for card in cards %}
+        <tr>
+            <td>{{ card.content }}</td>
+            <td>{{ card.priority_y }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+<script>
+    function startRanking() {
+        fetch('/start_comparison', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({'event_id': {{ event_id }}})
+    })
+    .then(response => response.json())
             .then(data => {
                 document.getElementById('start-ranking').classList.add('d-none');
                 updateComparisonSection(data.item1, data.item2);
             });
-        }
-
-        function updateComparisonSection(item1, item2) {
-            const section = document.getElementById('comparison-section');
-            section.classList.remove('d-none');
-            document.getElementById('item1').innerText = item1.content;
-            document.getElementById('item2').innerText = item2.content;
-        }
-
-        function submitChoice(choice) {
-            const selected = choice === 1 ? 'item1' : 'item2';
-            const item1Content = document.getElementById('item1').innerText;
-            const item2Content = document.getElementById('item2').innerText;
-
-            fetch('/submit_comparison', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    'event_id': {{ event_id }},
-                    'chosen': document.getElementById(selected).innerText,
-                    'other': selected === 'item1' ? item2Content : item1Content
-                })
-            })
-            .then(response => response.json())
+    }
+    function updateComparisonSection(item1, item2) {
+        const section = document.getElementById('comparison-section');
+        section.classList.remove('d-none');
+        document.getElementById('item1').innerText = item1.content;
+        document.getElementById('item2').innerText = item2.content;
+    }
+    function submitChoice(choice) {
+        const selected = choice === 1 ? 'item1' : 'item2';
+        const item1Content = document.getElementById('item1').innerText;
+        const item2Content = document.getElementById('item2').innerText;
+        fetch('/submit_comparison', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                'event_id': {{ event_id }},
+        'chosen': document.getElementById(selected).innerText,
+            'other': selected === 'item1' ? item2Content : item1Content
+    })
+    })
+    .then(response => response.json())
             .then(data => {
-                if (data.done) {
-                    window.location.reload();
-                } else {
+                if (!data.done) {
                     updateComparisonSection(data.nextItem1, data.nextItem2);
+                } else {
+                    window.location.href = "{{ event_url }}";
                 }
             });
-        }
-    </script>
+    }
+    function showOnlyComparison() {
+        document.getElementById('event-form').classList.add('d-none');
+        document.getElementById('comparison-section').classList.remove('d-none');
+        document.getElementById('prompt_g').classList.add('d-none');
+        document.getElementById('cards-list').classList.add('d-none');
+        document.getElementById('prioritized_y').classList.add('d-none');
+    }
+</script>
 {% endblock %}

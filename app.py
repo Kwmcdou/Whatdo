@@ -68,6 +68,27 @@ def create_event():
 
     return render_template("createEvent.html")
 
+@app.route("/view_event/<int:event_id>")
+@login_required
+def view_event(event_id):
+    """Display an event and its cards"""
+    # Fetch the event details to ensure it exists
+    event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
+    if not event:
+        return apology("Event not found", 404)
+
+    # Check if the user is associated with the event
+    user_event = db.execute("SELECT event_id FROM user_events WHERE user_id = ? AND event_id = ?", session["user_id"],
+                            event_id)
+    if not user_event:
+        return apology("Access denied. You do not have permission for this event", 403)
+
+    # Fetch the cards for this event
+    cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
+
+    # Render the event page with its cards
+    return render_template("viewEvent.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"])
+
 @app.route("/event/<int:event_id>")
 @login_required
 def event(event_id):
@@ -116,6 +137,9 @@ def start_comparison():
     """Fetch the first two items for comparison in an event."""
     data = request.get_json()
     event_id = data.get('event_id')
+
+    # Reset priority for cards in list
+    db.execute("UPDATE cards SET priority_y = NULL WHERE event_id = ?", event_id)
 
     # Fetch two cards for the event - simple example assumes random selection
     cards = db.execute("""
@@ -206,7 +230,6 @@ def submit_comparison():
     if next_card1 and next_card2:
         return jsonify({"nextItem1": next_card1, "nextItem2": next_card2})
 
-    flash("Your list is now in order from most important to least important.")
     return jsonify({"done": True})
 
 @app.route("/login", methods=["GET", "POST"])

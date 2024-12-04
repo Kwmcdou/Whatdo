@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block title %}
+View Event
+{% endblock %}
+{% block main %}
+<div class="container mt-5">
+    <h1 id="prioritized_y" class="text-center mb-4">Prioritized from most important to least important</h1>
+
+    {% set event_url = "/event/" ~ event_id %}
+    <a href="{{ event_url }}" class="btn btn-success w-100 mb-4">Add to Event</a>
+
+    <table class="table mt-4" id="cards-list">
+        <thead>
+        <tr>
+            <th scope="col">Content</th>
+            <th scope="col">Priority</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for card in cards %}
+        <tr>
+            <td>{{ card.content }}</td>
+            <td>{{ card.priority_y }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
