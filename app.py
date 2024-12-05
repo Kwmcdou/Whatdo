@@ -1,12 +1,10 @@
-import os
-
 from cs50 import SQL
-from flask import Flask, flash, jsonify, redirect, render_template, request, session
+from datetime import datetime
+from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required
-import sqlite3
 
 # Configure application
 app = Flask(__name__)
@@ -31,11 +29,34 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+def fetch_and_verify_event_and_user(event_id, template_name):
+    """Fetch event details and verify user permission, then render template."""
+    # Fetch event details
+    event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
+    if not event:
+        return apology("Event not found", 404)
+
+    # Verify user permission to the event
+    user_event = db.execute("SELECT event_id FROM user_events WHERE user_id = ? AND event_id = ?", session["user_id"],
+                            event_id)
+    if not user_event:
+        return apology("Access denied. You do not have permission for this event", 403)
+
+    # Fetch card details
+    cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
+
+    return render_template(template_name, event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"], event_name=event[0]["name"])
+
+
+@app.template_filter('format_date')
+def format_date(value):
+    """Formats a datetime object as 'YYYY-MM-DD'"""
+    date_obj = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    return date_obj.strftime('%Y-%m-%d')
 
 @app.route("/")
 @login_required
 def index():
-
     """Show home page"""
     # Pull the name of user's events
     events = db.execute("SELECT name, id, timestamp FROM events WHERE id IN (SELECT event_id FROM user_events WHERE user_id = ?)", session["user_id"])
@@ -71,44 +92,14 @@ def create_event():
 @app.route("/view_event/<int:event_id>")
 @login_required
 def view_event(event_id):
-    """Display an event and its cards"""
-    # Fetch the event details to ensure it exists
-    event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
-    if not event:
-        return apology("Event not found", 404)
-
-    # Check if the user is associated with the event
-    user_event = db.execute("SELECT event_id FROM user_events WHERE user_id = ? AND event_id = ?", session["user_id"],
-                            event_id)
-    if not user_event:
-        return apology("Access denied. You do not have permission for this event", 403)
-
-    # Fetch the cards for this event
-    cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
-
-    # Render the event page with its cards
-    return render_template("viewEvent.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"], event_name=event[0]["name"])
+    """Display an event and its cards using 'viewEvent.html'."""
+    return fetch_and_verify_event_and_user(event_id, "viewEvent.html")
 
 @app.route("/event/<int:event_id>")
 @login_required
 def event(event_id):
-    """Display an event and its cards"""
-    # Fetch the event details to ensure it exists
-    event = db.execute("SELECT * FROM events WHERE id = ?", event_id)
-    if not event:
-        return apology("Event not found", 404)
-
-    # Check if the user is associated with the event
-    user_event = db.execute("SELECT event_id FROM user_events WHERE user_id = ? AND event_id = ?", session["user_id"],
-                            event_id)
-    if not user_event:
-        return apology("Access denied. You do not have permission for this event", 403)
-
-    # Fetch the cards for this event
-    cards = db.execute("SELECT * FROM cards WHERE event_id = ? ORDER BY priority_y", event_id)
-
-    # Render the event page with its cards
-    return render_template("event.html", event_id=event_id, cards=cards, prompt_g=event[0]["prompt_g"], event_name=event[0]["name"])
+    """Display an event and its cards using 'event.html'."""
+    return fetch_and_verify_event_and_user(event_id, "event.html")
 
 @app.route("/create_card", methods=["GET", "POST"])
 @login_required
@@ -141,7 +132,7 @@ def start_comparison():
     # Reset priority for cards in list
     db.execute("UPDATE cards SET priority_y = NULL WHERE event_id = ?", event_id)
 
-    # Fetch two cards for the event - simple example assumes random selection
+    # Fetch two cards for the event - random until optimizing in the future
     cards = db.execute("""
         SELECT id, content FROM cards
         WHERE event_id = ? 
@@ -164,16 +155,19 @@ def submit_comparison():
     chosen_content = data.get('chosen')
     other_content = data.get('other')
 
+    # Fetches card data
     def fetch_card_data(content):
         query = """
             SELECT id, priority_y FROM cards WHERE content = ? AND event_id = ?
         """
         return db.execute(query, content, event_id)
 
+    # Updates card priority
     def update_card_priority(card_id, priority):
         query = "UPDATE cards SET priority_y = ? WHERE id = ?"
         db.execute(query, priority, card_id)
 
+    # Fetches cards without a priority
     def fetch_null_priority_cards():
         query = """
             SELECT id, content FROM cards
@@ -181,6 +175,7 @@ def submit_comparison():
         """
         return db.execute(query, event_id)
 
+    # Fetches cards with the same priority
     def fetch_duplicate_cards():
         query = """
             SELECT id, content FROM cards
@@ -195,6 +190,7 @@ def submit_comparison():
         """
         return db.execute(query, event_id, event_id)
 
+    # Fetches the next pair to compare
     def fetch_next_comparison_pair():
         null_cards = fetch_null_priority_cards()
         if null_cards:
@@ -206,9 +202,11 @@ def submit_comparison():
 
         return None, None
 
+    # Fetch chosen and not chosen cards
     chosen_card = fetch_card_data(chosen_content)
     other_card = fetch_card_data(other_content)
 
+    # Updates the priority of cards compared
     if chosen_card and other_card:
         chosen_id = chosen_card[0]['id']
         other_id = other_card[0]['id']
@@ -227,6 +225,8 @@ def submit_comparison():
         update_card_priority(other_id, other_priority)
 
     next_card1, next_card2 = fetch_next_comparison_pair()
+
+    # Returns cards if there are null or duplicate priority cards
     if next_card1 and next_card2:
         return jsonify({"nextItem1": next_card1, "nextItem2": next_card2})
 
